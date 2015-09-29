@@ -17,8 +17,8 @@ public class CowClickerApplicationTests {
   public void contextLoads() {
     CowGamePage cowGamePage = cowHomePage.clickStartGameButton();
     do {
+      cowGamePage.hoverCow();
       CowWinPage cowWinPage = cowGamePage.clickCow();
-      cowWinPage.selectMostAnimal();
       cowGamePage = cowWinPage.clickFindAnother();
     } while (true);
 

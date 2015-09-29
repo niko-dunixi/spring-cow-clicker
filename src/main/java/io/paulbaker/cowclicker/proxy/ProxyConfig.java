@@ -27,14 +27,16 @@ public class ProxyConfig {
     HttpProxyServer proxyServer = null;
     do {
       try {
+        int portNumber = random.nextInt(1000) + 8080;
         proxyServer = DefaultHttpProxyServer.bootstrap()
-          .withPort(random.nextInt(1000) + 8080)
+          .withPort(portNumber)
           .start();
       } catch (Exception e) {
         // The BindException is swallowed somewhere, which means we cannot explicitly catch it.
         // We can only catch the general exception, and then check if it is a BindException.
         if (e instanceof BindException) {
           // If it is a bind exception we just ignore it and try to get a new random port.
+          logger.error("Port was already taken. Reattempting.");
         } else {
           // If it is not a BindException, rethrow it.
           throw e;
