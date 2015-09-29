@@ -21,12 +21,6 @@ public class CowClickerApplicationTests {
       CowWinPage cowWinPage = cowGamePage.clickCow();
       cowGamePage = cowWinPage.clickFindAnother();
     } while (true);
-
-//    try {
-//      cowHomePage.wait(1000);
-//    } catch (InterruptedException e) {
-//      e.printStackTrace();
-//    }
   }
 
 }
