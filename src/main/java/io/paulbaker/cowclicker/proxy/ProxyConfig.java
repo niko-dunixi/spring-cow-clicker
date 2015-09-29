@@ -1,14 +1,29 @@
 package io.paulbaker.cowclicker.proxy;
 
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.DefaultHttpResponse;
+import io.netty.handler.codec.http.HttpObject;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import org.apache.log4j.Logger;
+import org.littleshoot.proxy.HttpFilters;
+import org.littleshoot.proxy.HttpFiltersAdapter;
+import org.littleshoot.proxy.HttpFiltersSource;
+import org.littleshoot.proxy.HttpFiltersSourceAdapter;
 import org.littleshoot.proxy.HttpProxyServer;
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import javax.annotation.PostConstruct;
 import java.net.BindException;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 
 /**
@@ -22,14 +37,52 @@ public class ProxyConfig {
   @Autowired
   private Random random;
 
+  @Value("${cow.host}")
+  private String gameHost;
+
+  private Set<String> whitelist;
+
+  public ProxyConfig() {
+    whitelist = new HashSet<>();
+    whitelist.add("http://ocsp.digicert.com");
+    whitelist.add("http://fonts.googleapis.com");
+//    whitelist.add("http://s7.addthis.com");
+    whitelist.add("api.mongolab.com");
+    whitelist.add("http://fonts.gstatic.com");
+//    whitelist.add("http://www.google-analytics.com");
+  }
+
+  @PostConstruct
+  public void postConstruct() {
+    whitelist.add(gameHost);
+  }
+
+  @Bean
+  public HttpFiltersSource httpFiltersSource() {
+    return new HttpFiltersSourceAdapter() {
+      @Override
+      public HttpFilters filterRequest(HttpRequest originalRequest, ChannelHandlerContext ctx) {
+        String uri = originalRequest.getUri();
+        if (whitelist.stream().anyMatch(uri::startsWith)) {
+          logger.info(String.format("ALLOWED: %s %s", originalRequest.getMethod(), uri));
+          return new HttpFiltersAdapter(originalRequest, ctx);
+        } else {
+          logger.info(String.format("BLOCKED: %s %s", originalRequest.getMethod(), uri));
+          return new DummyFilterAdapter(originalRequest, ctx);
+        }
+      }
+    };
+  }
+
   @Bean(destroyMethod = "stop")
-  public HttpProxyServer httpProxyServer() {
+  public HttpProxyServer httpProxyServer(HttpFiltersSource httpFiltersSource) {
     HttpProxyServer proxyServer = null;
     do {
       try {
         int portNumber = random.nextInt(1000) + 8080;
         proxyServer = DefaultHttpProxyServer.bootstrap()
           .withPort(portNumber)
+          .withFiltersSource(httpFiltersSource)
           .start();
       } catch (Exception e) {
         // The BindException is swallowed somewhere, which means we cannot explicitly catch it.
@@ -44,5 +97,27 @@ public class ProxyConfig {
       }
     } while (proxyServer == null);
     return proxyServer;
+  }
+
+  private class DummyFilterAdapter extends HttpFiltersAdapter {
+
+    public DummyFilterAdapter(HttpRequest originalRequest, ChannelHandlerContext ctx) {
+      super(originalRequest, ctx);
+    }
+
+    public DummyFilterAdapter(HttpRequest originalRequest) {
+      super(originalRequest);
+    }
+
+    /**
+     * This is the only method that needs to be overwritten. It returns nothing.
+     *
+     * @param httpObject
+     * @return
+     */
+    @Override
+    public HttpResponse clientToProxyRequest(HttpObject httpObject) {
+      return new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+    }
   }
 }
