@@ -8,6 +8,7 @@ import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.support.events.EventFiringWebDriver;
 import org.openqa.selenium.support.events.WebDriverEventListener;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -25,8 +26,8 @@ public class SeleniumConfig {
   @Autowired
   private ApplicationContext applicationContext;
 
-  @Autowired
-  private ResourceLoader resourceLoader;
+//  @Autowired
+//  private ResourceLoader resourceLoader;
 
   @Autowired
   private HttpProxyServer proxyServer;
@@ -37,7 +38,7 @@ public class SeleniumConfig {
     String httpProxy = proxyServer.getListenAddress().getHostName() + ":" + proxyServer.getListenAddress().getPort();
     proxy.setHttpProxy(httpProxy);
     proxy.setSslProxy(httpProxy);
-    DesiredCapabilities capabilities = new DesiredCapabilities();
+    DesiredCapabilities capabilities;// = new DesiredCapabilities();
     capabilities = DesiredCapabilities.firefox();
     capabilities.setCapability(CapabilityType.PROXY, proxy);
     return capabilities;
@@ -50,6 +51,11 @@ public class SeleniumConfig {
     EventFiringWebDriver eventFiringWebDriver = new EventFiringWebDriver(webDriver);
     applicationContext.getBeansOfType(WebDriverEventListener.class).values().forEach(eventFiringWebDriver::register);
     return eventFiringWebDriver;
+  }
+
+  @Bean
+  public WebDriverWait webDriverWait(WebDriver webDriver){
+    return new WebDriverWait(webDriver, 5);
   }
 
 }
