@@ -68,7 +68,7 @@ public class ProxyConfig {
           return new HttpFiltersAdapter(originalRequest, ctx);
         } else {
           logger.info(String.format("BLOCKED: %s %s", originalRequest.getMethod(), uri));
-          return new DummyFilterAdapter(originalRequest, ctx);
+          return new DummyFilterAdapter();
         }
       }
     };
@@ -101,12 +101,8 @@ public class ProxyConfig {
 
   private class DummyFilterAdapter extends HttpFiltersAdapter {
 
-    public DummyFilterAdapter(HttpRequest originalRequest, ChannelHandlerContext ctx) {
-      super(originalRequest, ctx);
-    }
-
-    public DummyFilterAdapter(HttpRequest originalRequest) {
-      super(originalRequest);
+    public DummyFilterAdapter() {
+      super(null, null);
     }
 
     /**
@@ -118,6 +114,16 @@ public class ProxyConfig {
     @Override
     public HttpResponse clientToProxyRequest(HttpObject httpObject) {
       return new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+    }
+
+    @Override
+    public HttpResponse proxyToServerRequest(HttpObject httpObject) {
+      return null;
+    }
+
+    @Override
+    public HttpObject proxyToClientResponse(HttpObject httpObject) {
+      return null;
     }
   }
 }
